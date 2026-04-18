@@ -7,8 +7,9 @@ metadata:
   author: duneanalytics
   version: "1.2.0"
   cli_version: "0.1"
-  upstream_repo: duneanalytics/cli
-  upstream_sha: "67f595c2324171431cc60605b15b6f21dbb6bb9c"
+  upstream_repo: duneanalytics/skills
+  upstream_file: skills/dune/SKILL.md
+  upstream_sha: "6e61a3193206efc59d711066f06b4a794fb569fa"
 ---
 
 ## Setup
@@ -23,43 +24,44 @@ _LAST_CHECK=$(cat ~/.dune/.last-upstream-check 2>/dev/null || echo 0)
 _NOW=$(date +%s)
 if [ $((_NOW - _LAST_CHECK)) -gt 86400 ]; then
   _LATEST=$(curl -sf --max-time 5 \
-    "https://api.github.com/repos/duneanalytics/cli/git/ref/heads/main" \
-    | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['object']['sha'])" 2>/dev/null || echo "")
+    "https://api.github.com/repos/duneanalytics/skills/contents/skills/dune/SKILL.md" \
+    | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['sha'])" 2>/dev/null || echo "")
   if [ -n "$_LATEST" ]; then
     echo "$_NOW" > ~/.dune/.last-upstream-check
     echo "$_LATEST" > ~/.dune/.upstream-sha-latest
-    echo "UPSTREAM_SHA=$_LATEST"
+    echo "UPSTREAM_FILE_SHA=$_LATEST"
   else
-    echo "UPSTREAM_SHA=fetch_failed"
+    echo "UPSTREAM_FILE_SHA=fetch_failed"
   fi
 else
-  echo "UPSTREAM_SHA=cached"
+  echo "UPSTREAM_FILE_SHA=cached"
 fi
 _LATEST_CACHED=$(cat ~/.dune/.upstream-sha-latest 2>/dev/null | tr -d '[:space:]')
 _ACK_SHA=$(cat ~/.dune/.upstream-ack 2>/dev/null | tr -d '[:space:]')
-_BASE_SHA="67f595c2324171431cc60605b15b6f21dbb6bb9c"
+_BASE_SHA="6e61a3193206efc59d711066f06b4a794fb569fa"
 _REF_SHA="${_ACK_SHA:-$_BASE_SHA}"
 [ -n "$_LATEST_CACHED" ] && [ "$_LATEST_CACHED" != "$_REF_SHA" ] \
-  && echo "UPSTREAM_UPDATE=yes COMPARE=https://github.com/duneanalytics/cli/compare/${_REF_SHA:0:7}...${_LATEST_CACHED:0:7}" \
+  && echo "UPSTREAM_UPDATE=yes" \
   || echo "UPSTREAM_UPDATE=no"
 ```
 
 **If `UPSTREAM_UPDATE=yes`:** before proceeding, notify the user:
 
-> The Dune CLI has new commits since you last reviewed. Your SKILL.md may need updating
-> (new commands, changed flags, new output fields).
+> The upstream `duneanalytics/skills` dune skill has been updated since you last reviewed.
+> Your customized SKILL.md may need updating (new commands, changed flags, new workflows).
 >
-> Diff: `https://github.com/duneanalytics/cli/compare/<ref>...<latest>`
+> Changes: `https://github.com/duneanalytics/skills/commits/main/skills/dune/SKILL.md`
+> Current upstream: `https://github.com/duneanalytics/skills/blob/main/skills/dune/SKILL.md`
 
 Then use AskUserQuestion:
 
-> Want to open the diff now?
+> Want to open the upstream changelog now?
 >
-> A) Open in browser and mark as reviewed
+> A) Open commit history in browser and mark as reviewed
 > B) Mark as reviewed without opening
 > C) Remind me next time (skip)
 
-- **A**: `open "https://github.com/duneanalytics/cli/compare/..."` then `echo "$_LATEST_CACHED" > ~/.dune/.upstream-ack`
+- **A**: `open "https://github.com/duneanalytics/skills/commits/main/skills/dune/SKILL.md"` then `echo "$_LATEST_CACHED" > ~/.dune/.upstream-ack`
 - **B**: `echo "$_LATEST_CACHED" > ~/.dune/.upstream-ack`
 - **C**: continue — will ask again next time the daily check fires
 
