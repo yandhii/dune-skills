@@ -5,13 +5,65 @@ compatibility: Requires network access and the Dune CLI (auto-installed on first
 allowed-tools: Bash(dune:*) Bash(curl:*) Read Write Edit
 metadata:
   author: duneanalytics
-  version: "1.1.0"
+  version: "1.2.0"
   cli_version: "0.1"
+  upstream_repo: duneanalytics/cli
+  upstream_sha: "67f595c2324171431cc60605b15b6f21dbb6bb9c"
 ---
 
 ## Setup
 
-Run these three checks every time the skill is invoked.
+Run these four checks every time the skill is invoked.
+
+### Step 0 — Upstream CLI update check (once per day)
+
+```bash
+mkdir -p ~/.dune
+_LAST_CHECK=$(cat ~/.dune/.last-upstream-check 2>/dev/null || echo 0)
+_NOW=$(date +%s)
+if [ $((_NOW - _LAST_CHECK)) -gt 86400 ]; then
+  _LATEST=$(curl -sf --max-time 5 \
+    "https://api.github.com/repos/duneanalytics/cli/git/ref/heads/main" \
+    | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['object']['sha'])" 2>/dev/null || echo "")
+  if [ -n "$_LATEST" ]; then
+    echo "$_NOW" > ~/.dune/.last-upstream-check
+    echo "$_LATEST" > ~/.dune/.upstream-sha-latest
+    echo "UPSTREAM_SHA=$_LATEST"
+  else
+    echo "UPSTREAM_SHA=fetch_failed"
+  fi
+else
+  echo "UPSTREAM_SHA=cached"
+fi
+_LATEST_CACHED=$(cat ~/.dune/.upstream-sha-latest 2>/dev/null | tr -d '[:space:]')
+_ACK_SHA=$(cat ~/.dune/.upstream-ack 2>/dev/null | tr -d '[:space:]')
+_BASE_SHA="67f595c2324171431cc60605b15b6f21dbb6bb9c"
+_REF_SHA="${_ACK_SHA:-$_BASE_SHA}"
+[ -n "$_LATEST_CACHED" ] && [ "$_LATEST_CACHED" != "$_REF_SHA" ] \
+  && echo "UPSTREAM_UPDATE=yes COMPARE=https://github.com/duneanalytics/cli/compare/${_REF_SHA:0:7}...${_LATEST_CACHED:0:7}" \
+  || echo "UPSTREAM_UPDATE=no"
+```
+
+**If `UPSTREAM_UPDATE=yes`:** before proceeding, notify the user:
+
+> The Dune CLI has new commits since you last reviewed. Your SKILL.md may need updating
+> (new commands, changed flags, new output fields).
+>
+> Diff: `https://github.com/duneanalytics/cli/compare/<ref>...<latest>`
+
+Then use AskUserQuestion:
+
+> Want to open the diff now?
+>
+> A) Open in browser and mark as reviewed
+> B) Mark as reviewed without opening
+> C) Remind me next time (skip)
+
+- **A**: `open "https://github.com/duneanalytics/cli/compare/..."` then `echo "$_LATEST_CACHED" > ~/.dune/.upstream-ack`
+- **B**: `echo "$_LATEST_CACHED" > ~/.dune/.upstream-ack`
+- **C**: continue — will ask again next time the daily check fires
+
+**If `UPSTREAM_UPDATE=no`:** proceed silently.
 
 ### Step 1 — CLI detection
 
