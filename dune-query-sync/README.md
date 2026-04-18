@@ -10,7 +10,7 @@ Manage your [Dune Analytics](https://dune.com) queries as local `.sql` files in 
 
 ## Install
 
-**Option A — Claude Code via npx:**
+**Option A — npx:**
 
 ```bash
 npx skills add yandhii/dune-skills --skill dune-query-sync
