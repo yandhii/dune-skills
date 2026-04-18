@@ -4,24 +4,27 @@ Edit your [Dune Analytics](https://dune.com) queries as local `.sql` files, vers
 
 ## Install the skill
 
-Pick one — all three end up with the same scripts and workflow.
-
-**Claude Code — npx (easiest):**
+**Option 1 — npx** (works for both Claude Code and Codex):
 ```bash
 npx skills add yandhii/dune-skills --skill dune-query-sync
 ```
-Invoke with `/dune-query-sync` in any Claude Code session.
 
-**Claude Code — no npx (just curl):**
+**Option 2 — curl** (no Node.js needed, pick your target):
+
+*Claude Code* — copies the skill to `~/.claude/skills/`:
 ```bash
 mkdir -p ~/.claude/skills/dune-query-sync
 curl -sf https://raw.githubusercontent.com/yandhii/dune-skills/main/dune-query-sync/SKILL.md \
   > ~/.claude/skills/dune-query-sync/SKILL.md
 ```
-Same result as npx, no Node.js required.
 
-**Codex CLI:**
-No skill install needed. Copy the routing block from the [main README](../README.md#agentsmd-block) into your `AGENTS.md`, then follow the setup below.
+*Codex CLI* — appends the routing block to your project's `AGENTS.md`:
+```bash
+curl -sf https://raw.githubusercontent.com/yandhii/dune-skills/main/dune-query-sync/AGENTS_BLOCK.md \
+  >> AGENTS.md
+```
+
+After installing, invoke with `/dune-query-sync` in Claude Code, or just describe what you want in Codex — the routing block handles dispatch automatically.
 
 ---
 
