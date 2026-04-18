@@ -24,7 +24,7 @@ Invoke with `/dune` or `/dune-query-sync` in any Claude Code session.
 
 ### CLAUDE.md routing block
 
-The first time you invoke `/dune`, it checks whether routing rules already exist in your `CLAUDE.md` and offers to add them automatically. If you prefer to add them manually, use the block below.
+Add this to your project's `CLAUDE.md` so Claude Code knows when to invoke each skill automatically:
 
 ```markdown
 ## Dune Analytics
@@ -146,6 +146,10 @@ Requires: `dune` CLI installed and authenticated (`dune auth --api-key <key>` or
 | Find a table or dataset | `dune dataset search --query "..." -o json` |
 | Check credit usage | `dune usage -o json` |
 | Create a new query | `dune query create --name "..." --sql "..." -o json` |
+| Create a visualization | `dune viz create --query-id <id> --name "..." --type chart --options '{...}' -o json` |
+| List visualizations for a query | `dune viz list --query-id <id> -o json` |
+| Create a dashboard | `dune dashboard create --name "..." --visualization-ids <id> -o json` |
+| Get a dashboard | `dune dashboard get <id> -o json` |
 
 Always pass `-o json`. Before writing DuneSQL, look up syntax with `dune docs search --query "..."`.
 
@@ -173,7 +177,12 @@ Files live at `queries/{slug}___{id}.sql`. Tracked IDs are in `queries/queries.y
 | `DUNE_API_KEY` | `push.py` (primary), `pull.py` (fallback), `dune` CLI | Must belong to the account that owns the queries |
 | `DUNE_COMPANY_API_KEY` | `pull.py` (primary), `push.py` (fallback) | Optional — cheaper shared key for reads |
 
-Key resolution in both scripts: if `DUNE_COMPANY_API_KEY` is set, reads use it; writes prefer `DUNE_API_KEY`. If only one key is set, both scripts use it for everything. If neither is set, both scripts exit with an error.
+Key resolution in both scripts and the `/dune` skill:
+
+- **Reads** (`pull.py`, `dune query run`, `dune query run-sql`, `dune dataset search`, `dune usage`): prefer `DUNE_COMPANY_API_KEY`, fall back to `DUNE_API_KEY`
+- **Writes** (`push.py`, `dune query create/update`, `dune viz create/update/delete`, `dune dashboard create/update`): prefer `DUNE_API_KEY`, fall back to `DUNE_COMPANY_API_KEY`
+
+If only one key is set, it is used for everything. If neither is set, scripts and the skill exit with an error.
 
 Note: `dune auth` stores the CLI key separately in `~/.config/dune/config.yaml` — it is not read from `.env`. If you run `dune` commands directly, authenticate with `dune auth --api-key your_key` in addition to setting the env vars.
 
