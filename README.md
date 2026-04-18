@@ -68,31 +68,7 @@ dune auth --api-key your_key
 
 ### Query sync setup (required for `dune-query-sync`)
 
-Copy the template scripts into your project root:
-
-```bash
-curl -O https://raw.githubusercontent.com/yandhii/dune-skills/main/templates/pull.py
-curl -O https://raw.githubusercontent.com/yandhii/dune-skills/main/templates/push.py
-curl -O https://raw.githubusercontent.com/yandhii/dune-skills/main/templates/requirements.txt
-pip install -r requirements.txt
-```
-
-Create `.env` in your project root (add to `.gitignore`):
-
-```
-DUNE_API_KEY=your_personal_key          # required for push — must own the queries
-DUNE_COMPANY_API_KEY=your_company_key   # optional — used for pull to save personal credits
-```
-
-Bootstrap the queries directory:
-
-```bash
-mkdir -p queries
-echo "query_ids: []" > queries/queries.yml
-echo ".dune_push_ref" >> .gitignore
-```
-
-Add Dune query IDs to `queries/queries.yml`, then run `python pull.py` to fetch them as local `.sql` files.
+See **[dune-query-sync/README.md](dune-query-sync/README.md)** for full setup and usage instructions.
 
 ---
 
