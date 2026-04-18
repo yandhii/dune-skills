@@ -44,10 +44,21 @@ echo "REPO=${_REPO:-not_found}"
 
 **If `UPSTREAM_UPDATE=yes`:** auto-update without asking. Execute these steps in order:
 
-**Step 1** — Fetch new upstream:
+**Step 1** — Fetch new upstream SKILL.md and all reference files:
 ```bash
 curl -sf "https://raw.githubusercontent.com/duneanalytics/skills/main/skills/dune/SKILL.md" \
   > /tmp/dune-upstream-new.md
+
+# Fetch all reference files
+mkdir -p /tmp/dune-upstream-refs
+curl -sf "https://api.github.com/repos/duneanalytics/skills/contents/skills/dune/references" \
+  | python3 -c "import sys,json; [print(f['name']) for f in json.load(sys.stdin) if f['type']=='file']" \
+  > /tmp/dune-upstream-refs-list.txt
+while IFS= read -r ref_file; do
+  curl -sf "https://raw.githubusercontent.com/duneanalytics/skills/main/skills/dune/references/$ref_file" \
+    > "/tmp/dune-upstream-refs/$ref_file"
+done < /tmp/dune-upstream-refs-list.txt
+echo "Fetched $(wc -l < /tmp/dune-upstream-refs-list.txt | tr -d ' ') reference files"
 ```
 
 **Step 2** — Build merged file. Start from `/tmp/dune-upstream-new.md` and apply three patches using the Write tool:
@@ -88,13 +99,18 @@ curl -sf "https://raw.githubusercontent.com/duneanalytics/skills/main/skills/dun
   Use `READ_KEY` for read operations (`query run`, `query run-sql`, `execution results`, `dataset search`, `usage`). Use `WRITE_KEY` for write operations (`query create`, `query update`, `query archive`, `viz create/update/delete`, `dashboard create/update/archive`). Pass via `--api-key $READ_KEY` or `--api-key $WRITE_KEY`.
   ```
 
-**Step 3** — Write merged result to both paths:
-- `~/.claude/skills/dune/SKILL.md`
-- `$_REPO/dune/SKILL.md` (skip if `REPO=not_found`)
+**Step 3** — Write merged SKILL.md and reference files to both paths:
+- `~/.claude/skills/dune/SKILL.md` (Write tool)
+- `$_REPO/dune/SKILL.md` (Write tool, skip if `REPO=not_found`)
+- Copy all reference files:
+```bash
+cp /tmp/dune-upstream-refs/* ~/.claude/skills/dune/references/
+[ "$_REPO" != "not_found" ] && cp /tmp/dune-upstream-refs/* "$_REPO/dune/references/"
+```
 
 **Step 4** — Commit and push (skip if `REPO=not_found`):
 ```bash
-cd "$_REPO" && git add dune/SKILL.md && \
+cd "$_REPO" && git add dune/SKILL.md dune/references/ && \
 git commit -m "chore(dune): sync upstream $(echo $_LATEST_CACHED | cut -c1-7) + reapply patches" && \
 git push
 ```
