@@ -1,7 +1,7 @@
 ---
 name: dune-query-sync
 description: "Sync Dune Analytics queries between a local git repo and Dune. Use when the user wants to pull queries from Dune, edit SQL locally, push changes back, or manage tracked query IDs."
-compatibility: Requires Python 3.11+, dune-client SDK, and a git repo with pull.py / push.py scripts.
+compatibility: Requires Python 3.11+, a git repo with pull.py / push.py scripts (templates at yandhii/dune-skills).
 allowed-tools:
   - Bash
   - Read
@@ -9,12 +9,26 @@ allowed-tools:
   - Write
 metadata:
   author: yandhii
-  version: "1.1.0"
+  version: "1.2.0"
 ---
 
 # Dune Query Sync
 
 A workflow for managing Dune Analytics queries as local `.sql` files in git. Pull queries down, edit them, commit, then push only the changed ones back to Dune.
+
+## Environment Check
+
+Run these checks at invocation before doing anything else:
+
+```bash
+[ -f pull.py ] && [ -f push.py ] || echo "MISSING_SCRIPTS: copy from yandhii/dune-skills/templates/ (pull.py, push.py, requirements.txt)"
+[ -f queries/queries.yml ] || echo "MISSING_YML: run: mkdir -p queries && echo 'query_ids: []' > queries/queries.yml"
+[ -n "${DUNE_API_KEY:-}${DUNE_COMPANY_API_KEY:-}" ] || echo "MISSING_KEY: set DUNE_API_KEY in .env (and optionally DUNE_COMPANY_API_KEY)"
+git rev-parse --git-dir >/dev/null 2>&1 || echo "NOT_A_GIT_REPO: push.py requires git — run: git init"
+python3 -c "import requests, yaml, dotenv" 2>/dev/null || echo "MISSING_DEPS: run: pip install -r requirements.txt"
+```
+
+For each `MISSING_*` or `NOT_A_GIT_REPO` line printed, surface the fix command to the user and stop — do not proceed until prerequisites are met.
 
 ## Project Structure
 
@@ -57,7 +71,7 @@ pip install -r requirements.txt
 `requirements.txt` must include (always pin exact versions — `==` only, never `>=`, `^`, `~`):
 
 ```
-dune-client==1.10.0
+requests==2.32.5
 pyyaml==6.0.3
 python-dotenv==1.2.2
 ```
@@ -115,7 +129,7 @@ To **remove** a query: delete the ID from the list. The local `.sql` file is **n
 python pull.py
 ```
 
-- Fetches SQL for every ID in `queries.yml` via `dune-client`
+- Fetches SQL for every ID in `queries.yml` via the Dune REST API
 - Saves as `queries/{slug}___{id}.sql` with a `--` comment header
 - **Skips** files whose SQL hasn't changed (idempotent)
 - Prints `✅ new`, `📝 updated`, or `—  unchanged` per file

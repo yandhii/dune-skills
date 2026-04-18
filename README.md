@@ -24,15 +24,17 @@ Invoke with `/dune` or `/dune-query-sync` in any Claude Code session.
 
 ### CLAUDE.md routing block
 
-Add this to your project's `CLAUDE.md` so Claude Code knows when to invoke each skill automatically:
+The first time you invoke `/dune`, it checks whether routing rules already exist in your `CLAUDE.md` and offers to add them automatically. If you prefer to add them manually, use the block below.
 
 ```markdown
 ## Dune Analytics
 
-Two skills handle all Dune work. Default to `/dune-query-sync` for anything involving
-local `.sql` files or `queries.yml`. Use `/dune` for everything else.
+Two skills handle all Dune work. When the user's request matches any row below, ALWAYS
+invoke the mapped skill via the Skill tool as your FIRST action. Do NOT answer directly.
+Do NOT use other tools first.
 
-When the user's request involves any of the following, invoke the mapped skill:
+Default to `/dune-query-sync` for anything involving local `.sql` files or `queries.yml`.
+Use `/dune` for everything else.
 
 | User intent / keywords | Skill |
 |---|---|

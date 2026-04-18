@@ -2,18 +2,113 @@
 name: dune
 description: "Dune CLI for querying blockchain and on-chain data via DuneSQL, searching decoded contract tables, managing saved queries, and monitoring credit usage on Dune Analytics. Use when user asks about blockchain data, on-chain analytics, token transfers, DEX trades, smart contract events, wallet balances, Ethereum/EVM chain queries, DuneSQL, or says \"query Dune\", \"search Dune datasets\", or \"run a Dune query\"."
 compatibility: Requires network access and the Dune CLI (auto-installed on first use). Works on macOS, Linux, and Windows.
-allowed-tools: Bash(dune:*) Bash(curl:*) Read
+allowed-tools: Bash(dune:*) Bash(curl:*) Read Write Edit
 metadata:
   author: duneanalytics
-  version: "1.0.0"
+  version: "1.1.0"
   cli_version: "0.1"
 ---
 
-## Prerequisites
+## Setup
 
-Assume the Dune CLI is already installed and authenticated. **Do not** run upfront install or auth checks. Just execute the requested `dune` command directly.
+Run these three checks every time the skill is invoked.
 
-If a `dune` command fails, inspect the error to determine the cause and follow the recovery steps in [install-and-recovery.md](references/install-and-recovery.md):
+### Step 1 — CLI detection
+
+```bash
+_DUNE_BIN=$(which dune 2>/dev/null || echo "")
+[ -z "$_DUNE_BIN" ] && echo "DUNE_CLI=NOT_FOUND" || echo "DUNE_CLI=FOUND: $_DUNE_BIN"
+```
+
+**If `DUNE_CLI=FOUND`:** skip to Step 2.
+
+**If `DUNE_CLI=NOT_FOUND`:** install following [Option A in install-and-recovery.md](references/install-and-recovery.md#option-a----automated-install-no-user-interaction):
+
+1. Read the `PATH` environment variable. Look for an existing user-home directory already on PATH: `$HOME/.local/bin`, `$HOME/bin`, `$HOME/go/bin`, `$HOME/.cargo/bin`. Pick the first that exists. If none found, fall back to `$HOME/.local/bin`.
+2. Only if using the fallback and the directory doesn't exist: `mkdir -p "$HOME/.local/bin"`
+3. Download installer: `curl -sSfL -o /tmp/dune_install.sh https://github.com/duneanalytics/cli/raw/main/install.sh`
+4. Run installer: `INSTALL_DIR="<chosen-dir>" bash /tmp/dune_install.sh`
+5. Add to PATH for the session: `export PATH="<chosen-dir>:$PATH"`
+6. Verify: `command -v dune`
+
+If verification still fails, surface the Option B fallback from [install-and-recovery.md](references/install-and-recovery.md#option-b----user-assisted-install-fallback): ask the user to run the install in a separate terminal (`curl -sSfL https://github.com/duneanalytics/cli/raw/main/install.sh | bash`) and come back when done.
+
+### Step 2 — Key resolution
+
+```bash
+_KEY_OK="no"
+{ [ -n "${DUNE_API_KEY:-}" ] || [ -n "${DUNE_COMPANY_API_KEY:-}" ]; } && _KEY_OK="yes"
+[ "$_KEY_OK" = "no" ] && grep -q "api_key" ~/.config/dune/config.yaml 2>/dev/null && _KEY_OK="yes"
+echo "KEY_RESOLVABLE=$_KEY_OK"
+```
+
+**If `KEY_RESOLVABLE=yes`:** proceed to Step 3.
+
+**If `KEY_RESOLVABLE=no`:** stop and tell the user:
+
+> No Dune API key found. Set at least one in `.env` or run `dune auth --api-key <key>`:
+> ```
+> DUNE_API_KEY=your_key           # single key (read + write)
+> DUNE_COMPANY_API_KEY=your_key   # optional: separate read key
+> ```
+
+### Step 3 — Routing injection check
+
+```bash
+_AGENTS_FILE=""
+[ -f CLAUDE.md ] && _AGENTS_FILE="CLAUDE.md" || { [ -f AGENTS.md ] && _AGENTS_FILE="AGENTS.md"; }
+_HAS_ROUTING="no"
+[ -n "$_AGENTS_FILE" ] && grep -q "## Dune Analytics" "$_AGENTS_FILE" 2>/dev/null && _HAS_ROUTING="yes"
+_DECLINED=$([ -f ~/.dune/.routing-declined ] && echo "yes" || echo "no")
+echo "AGENTS_FILE: ${_AGENTS_FILE:-none}"
+echo "HAS_DUNE_ROUTING: $_HAS_ROUTING"
+echo "ROUTING_DECLINED: $_DECLINED"
+```
+
+**If `HAS_DUNE_ROUTING=yes` or `ROUTING_DECLINED=yes`:** skip — proceed with the user's request.
+
+**If `HAS_DUNE_ROUTING=no` and `ROUTING_DECLINED=no`:** use AskUserQuestion to offer routing injection:
+
+> Would you like to add Dune skill routing rules to your project? This tells Claude Code to
+> always use `/dune` and `/dune-query-sync` instead of answering Dune tasks ad-hoc.
+> It's a one-time addition (~15 lines) to your CLAUDE.md.
+>
+> A) Yes, add routing rules to CLAUDE.md
+> B) No thanks, I'll invoke skills manually
+
+**If A (accepted):**
+- If `_AGENTS_FILE` is empty, create `CLAUDE.md`.
+- Re-check that `## Dune Analytics` is not already present (idempotent guard).
+- Append the following block exactly:
+
+```markdown
+
+## Dune Analytics
+
+Two skills handle all Dune work. When the user's request matches any row below, ALWAYS
+invoke the mapped skill via the Skill tool as your FIRST action. Do NOT answer directly.
+Do NOT use other tools first.
+
+Default to `/dune-query-sync` for anything involving local `.sql` files or `queries.yml`.
+Use `/dune` for everything else.
+
+| User intent / keywords | Skill |
+|---|---|
+| "pull", "sync", "get queries", "download SQL" | `/dune-query-sync` |
+| "push", "update query on Dune", "deploy SQL changes" | `/dune-query-sync` |
+| "add query ID", "track new query", "add to queries.yml" | `/dune-query-sync` |
+| "run", "execute", "test query", "check results" | `/dune` |
+| "create a new query" | `/dune` (`dune query create`) |
+| "search datasets", "find a table", "Dune docs" | `/dune` |
+| "credit usage", "how many credits" | `/dune` |
+| "chart", "visualization", "dashboard" | `/dune` |
+```
+
+**If B (declined):** `mkdir -p ~/.dune && touch ~/.dune/.routing-declined`
+
+---
+
+After setup completes, proceed with the user's request. If a `dune` command fails, inspect the error and follow the recovery steps in [install-and-recovery.md](references/install-and-recovery.md):
 
 - **"command not found"** → CLI not installed. See [CLI Not Found Recovery](references/install-and-recovery.md#cli-not-found-recovery).
 - **401 / "unauthorized" / "missing API key"** → Auth failure. See [Authentication Failure Recovery](references/install-and-recovery.md#authentication-failure-recovery).
