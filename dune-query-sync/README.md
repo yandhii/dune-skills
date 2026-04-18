@@ -34,7 +34,7 @@ Invoke with `/dune-query-sync` in any Claude Code session.
 curl -O https://raw.githubusercontent.com/yandhii/dune-skills/main/templates/pull.py
 curl -O https://raw.githubusercontent.com/yandhii/dune-skills/main/templates/push.py
 curl -O https://raw.githubusercontent.com/yandhii/dune-skills/main/templates/requirements.txt
-pip install -r requirements.txt
+uv pip install -r requirements.txt
 ```
 
 **2. Create `.env` in your project root** (add to `.gitignore`):

@@ -86,7 +86,7 @@ Before adding the routing block, complete this setup in your project:
    curl -O https://raw.githubusercontent.com/yandhii/dune-skills/main/templates/pull.py
    curl -O https://raw.githubusercontent.com/yandhii/dune-skills/main/templates/push.py
    curl -O https://raw.githubusercontent.com/yandhii/dune-skills/main/templates/requirements.txt
-   pip install -r requirements.txt
+   uv pip install -r requirements.txt
    ```
 3. **Create `.env`** in your project root (add to `.gitignore`):
    ```
