@@ -9,22 +9,11 @@ Manage your [Dune Analytics](https://dune.com) queries as local `.sql` files in 
 - Keep a backup of all your queries in git
 
 ## Install
-
-**Option A — npx:**
-
 ```bash
 npx skills add yandhii/dune-skills --skill dune-query-sync
 ```
 
-Invoke with `/dune-query-sync` in any Claude Code session.
-
-**Option B — Claude Code manual copy:**
-
-```bash
-mkdir -p ~/.claude/skills/dune-query-sync
-curl -sf https://raw.githubusercontent.com/yandhii/dune-skills/main/dune-query-sync/SKILL.md \
-  > ~/.claude/skills/dune-query-sync/SKILL.md
-```
+Invoke with `/dune-query-sync` in any session.
 
 **Option C — Codex CLI:**
 
