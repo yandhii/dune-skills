@@ -135,11 +135,11 @@ Requires: `pull.py` and `push.py` in the project root, `.env` with `DUNE_API_KEY
 
 | User asks | Action |
 |---|---|
-| "pull", "sync", "get queries from Dune" | `python pull.py` |
-| "push", "deploy SQL changes to Dune" | `python push.py` |
-| "preview what would be pushed" | `python push.py --dry-run` |
-| "force push everything" | `python push.py --all` |
-| "add a query ID", "track a new query" | Add ID to `queries/queries.yml`, then `python pull.py` |
+| "pull", "sync", "get queries from Dune" | `uv run pull.py` |
+| "push", "deploy SQL changes to Dune" | `uv run push.py` |
+| "preview what would be pushed" | `uv run push.py --dry-run` |
+| "force push everything" | `uv run push.py --all` |
+| "add a query ID", "track a new query" | Add ID to `queries/queries.yml`, then `uv run pull.py` |
 
 Files live at `queries/{slug}___{id}.sql`. Tracked IDs are in `queries/queries.yml`.
 ````

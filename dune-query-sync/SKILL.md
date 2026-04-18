@@ -126,7 +126,7 @@ To **remove** a query: delete the ID from the list. The local `.sql` file is **n
 > **Warning:** `pull.py` overwrites local `.sql` files if the remote SQL has changed. Commit or stash any local edits before pulling.
 
 ```bash
-python pull.py
+uv run pull.py
 ```
 
 - Fetches SQL for every ID in `queries.yml` via the Dune REST API
@@ -170,13 +170,13 @@ git commit -m "Add Paragon support to HIP-3 classification"
 
 ```bash
 # 1. Preview what would be pushed (always check first)
-python push.py --dry-run
+uv run push.py --dry-run
 
 # 2. Push only files changed since last push
-python push.py
+uv run push.py
 
 # 3. Force push all tracked queries (bypasses change detection)
-python push.py --all
+uv run push.py --all
 ```
 
 ### How Change Detection Works
@@ -193,7 +193,7 @@ After each **fully successful** push (zero errors), `push.py` records the curren
 
 ### Caveats
 
-- **Rebase / reset / branch switch**: `git diff` is run against the SHA stored in `.dune_push_ref`. After a rebase or hard reset, that SHA may point to a different tree, causing incorrect diff output. If you rebase, delete `.dune_push_ref` and re-run to baseline: `rm .dune_push_ref && python push.py`
+- **Rebase / reset / branch switch**: `git diff` is run against the SHA stored in `.dune_push_ref`. After a rebase or hard reset, that SHA may point to a different tree, causing incorrect diff output. If you rebase, delete `.dune_push_ref` and re-run to baseline: `rm .dune_push_ref && uv run push.py`
 - **Non-linear history**: the ref assumes you're on a single linear branch. Merges and branch switches can produce unexpected diffs.
 
 ---
@@ -202,7 +202,7 @@ After each **fully successful** push (zero errors), `push.py` records the curren
 
 ```bash
 # 1. Pull latest from Dune (commit local edits first)
-python pull.py
+uv run pull.py
 
 # 2. Edit SQL locally
 $EDITOR queries/hip_3___6280635.sql
@@ -211,10 +211,10 @@ $EDITOR queries/hip_3___6280635.sql
 git add queries/hip_3___6280635.sql && git commit -m "..."
 
 # 4. Preview what will be pushed
-python push.py --dry-run
+uv run push.py --dry-run
 
 # 5. Push only what changed
-python push.py
+uv run push.py
 ```
 
 ---

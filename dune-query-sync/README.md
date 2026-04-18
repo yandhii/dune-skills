@@ -10,13 +10,15 @@ Manage your [Dune Analytics](https://dune.com) queries as local `.sql` files in 
 
 ## Install
 
-**Option A — via npx (recommended):**
+**Option A — Claude Code via npx:**
 
 ```bash
 npx skills add yandhii/dune-skills --skill dune-query-sync
 ```
 
-**Option B — manual copy:**
+Invoke with `/dune-query-sync` in any Claude Code session.
+
+**Option B — Claude Code manual copy:**
 
 ```bash
 mkdir -p ~/.claude/skills/dune-query-sync
@@ -24,7 +26,9 @@ curl -sf https://raw.githubusercontent.com/yandhii/dune-skills/main/dune-query-s
   > ~/.claude/skills/dune-query-sync/SKILL.md
 ```
 
-Invoke with `/dune-query-sync` in any Claude Code session.
+**Option C — Codex CLI:**
+
+No skill install needed. Codex reads `AGENTS.md` directly. Add the routing block from the [main README](../README.md#agentsmd-block) to your project's `AGENTS.md`, then complete the setup below.
 
 ## Setup (one-time)
 
@@ -65,14 +69,14 @@ Find the ID in the URL of any Dune query: `dune.com/queries/<id>`.
 **5. Pull to create local files:**
 
 ```bash
-python pull.py
+uv run pull.py
 ```
 
 ## Daily workflow
 
 ```bash
 # Pull latest SQL from Dune (commit local edits first)
-python pull.py
+uv run pull.py
 
 # Edit a query
 $EDITOR queries/my_query___6280635.sql
@@ -81,21 +85,21 @@ $EDITOR queries/my_query___6280635.sql
 git add queries/ && git commit -m "update query"
 
 # Preview what will be pushed
-python push.py --dry-run
+uv run push.py --dry-run
 
 # Push changed queries to Dune
-python push.py
+uv run push.py
 ```
 
 ## Commands
 
 | What you want | Command |
 |---|---|
-| Pull all tracked queries from Dune | `python pull.py` |
-| Push changed queries to Dune | `python push.py` |
-| Preview what would be pushed | `python push.py --dry-run` |
-| Force push everything | `python push.py --all` |
-| Add a new query | Add ID to `queries/queries.yml`, then `python pull.py` |
+| Pull all tracked queries from Dune | `uv run pull.py` |
+| Push changed queries to Dune | `uv run push.py` |
+| Preview what would be pushed | `uv run push.py --dry-run` |
+| Force push everything | `uv run push.py --all` |
+| Add a new query | Add ID to `queries/queries.yml`, then `uv run pull.py` |
 
 ## How change detection works
 
