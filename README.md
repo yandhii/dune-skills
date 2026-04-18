@@ -22,6 +22,30 @@ npx skills add yandhii/dune-skills --skill dune-query-sync
 
 Invoke with `/dune` or `/dune-query-sync` in any Claude Code session.
 
+### CLAUDE.md routing block
+
+Add this to your project's `CLAUDE.md` so Claude Code knows when to invoke each skill automatically:
+
+```markdown
+## Dune Analytics
+
+Two skills handle all Dune work. Default to `/dune-query-sync` for anything involving
+local `.sql` files or `queries.yml`. Use `/dune` for everything else.
+
+When the user's request involves any of the following, invoke the mapped skill:
+
+| User intent / keywords | Skill |
+|---|---|
+| "pull", "sync", "get queries", "download SQL" | `/dune-query-sync` |
+| "push", "update query on Dune", "deploy SQL changes" | `/dune-query-sync` |
+| "add query ID", "track new query", "add to queries.yml" | `/dune-query-sync` |
+| "run", "execute", "test query", "check results" | `/dune` |
+| "create a new query" | `/dune` (`dune query create`) |
+| "search datasets", "find a table", "Dune docs" | `/dune` |
+| "credit usage", "how many credits" | `/dune` |
+| "chart", "visualization", "dashboard" | `/dune` |
+```
+
 ### Dune CLI setup (required for `dune`)
 
 ```bash
