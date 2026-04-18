@@ -25,7 +25,7 @@ Run these checks at invocation before doing anything else:
 [ -f queries/queries.yml ] || echo "MISSING_YML: run: mkdir -p queries && echo 'query_ids: []' > queries/queries.yml"
 [ -n "${DUNE_API_KEY:-}${DUNE_COMPANY_API_KEY:-}" ] || echo "MISSING_KEY: set DUNE_API_KEY in .env (and optionally DUNE_COMPANY_API_KEY)"
 git rev-parse --git-dir >/dev/null 2>&1 || echo "NOT_A_GIT_REPO: push.py requires git — run: git init"
-python3 -c "import requests, yaml, dotenv" 2>/dev/null || echo "MISSING_DEPS: run: pip install -r requirements.txt"
+python3 -c "import requests, yaml, dotenv" 2>/dev/null || echo "MISSING_DEPS: run: uv pip install -r requirements.txt"
 ```
 
 For each `MISSING_*` or `NOT_A_GIT_REPO` line printed, surface the fix command to the user and stop — do not proceed until prerequisites are met.
