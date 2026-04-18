@@ -2,7 +2,7 @@
 name: dune
 description: "Dune CLI for querying blockchain and on-chain data via DuneSQL, searching decoded contract tables, managing saved queries, managing visualizations, managing dashboards, and monitoring credit usage on Dune. Use when user asks about blockchain data, on-chain analytics, token transfers, DEX trades, smart contract events, wallet balances, Ethereum/EVM chain queries, DuneSQL, visualizations, charts, dashboards, or says \"query Dune\", \"search Dune datasets\", \"run a Dune query\", \"create a dashboard\", or \"manage dashboard\"."
 compatibility: Requires network access and the Dune CLI (auto-installed on first use). Works on macOS, Linux, and Windows.
-allowed-tools: Bash(dune:*) Bash(curl:*) Read
+allowed-tools: Bash(dune:*) Bash(curl:*) Bash(git:*) Read Write Edit
 metadata:
   author: yandhii
   version: "1.1.0"
@@ -14,7 +14,7 @@ metadata:
 
 ## Upstream Update Check
 
-Run once per day to detect when the official skill has been updated.
+Run once per day. Auto-applies patches when the official skill changes.
 
 ```bash
 mkdir -p ~/.dune
@@ -34,22 +34,78 @@ _ACK_SHA=$(cat ~/.dune/.upstream-ack 2>/dev/null | tr -d '[:space:]')
 _REF_SHA="${_ACK_SHA:-6e61a3193206efc59d711066f06b4a794fb569fa}"
 [ -n "$_LATEST_CACHED" ] && [ "$_LATEST_CACHED" != "$_REF_SHA" ] \
   && echo "UPSTREAM_UPDATE=yes" || echo "UPSTREAM_UPDATE=no"
+_REPO=$(cat ~/.dune/.repo-path 2>/dev/null)
+[ -z "$_REPO" ] && _REPO=$(find "$HOME" -maxdepth 6 -type d -name "dune-skills" 2>/dev/null | grep -v "\.cache\|node_modules" | head -1)
+[ -n "$_REPO" ] && echo "$_REPO" > ~/.dune/.repo-path
+echo "REPO=${_REPO:-not_found}"
 ```
 
-**If `UPSTREAM_UPDATE=yes`:** notify the user before proceeding:
-
-> The upstream `duneanalytics/skills` dune skill has been updated. Review changes and sync to this fork when ready.
-
-Use AskUserQuestion:
-> A) Open commit history in browser and mark as reviewed
-> B) Mark as reviewed without opening
-> C) Remind me next time
-
-- **A**: `open "https://github.com/duneanalytics/skills/commits/main/skills/dune/SKILL.md"` then `echo "$_LATEST_CACHED" > ~/.dune/.upstream-ack`
-- **B**: `echo "$_LATEST_CACHED" > ~/.dune/.upstream-ack`
-- **C**: continue silently
-
 **If `UPSTREAM_UPDATE=no`:** proceed silently.
+
+**If `UPSTREAM_UPDATE=yes`:** auto-update without asking. Execute these steps in order:
+
+**Step 1** — Fetch new upstream:
+```bash
+curl -sf "https://raw.githubusercontent.com/duneanalytics/skills/main/skills/dune/SKILL.md" \
+  > /tmp/dune-upstream-new.md
+```
+
+**Step 2** — Build merged file. Start from `/tmp/dune-upstream-new.md` and apply three patches using the Write tool:
+
+- **Patch A — Metadata**: Replace the upstream `metadata:` block with:
+  ```yaml
+  metadata:
+    author: yandhii
+    version: "1.1.0"
+    cli_version: "<keep upstream value>"
+    upstream_repo: duneanalytics/skills
+    upstream_file: skills/dune/SKILL.md
+    upstream_sha: "<_LATEST_CACHED value>"
+  ```
+
+- **Patch B — This section**: Re-insert the entire current `## Upstream Update Check` section (read from `~/.claude/skills/dune/SKILL.md`) immediately before `## Prerequisites`.
+
+- **Patch C — Key Resolution**: Insert the following immediately after the line `Config file location: \`~/.config/dune/config.yaml\``:
+
+  ```markdown
+
+  ### Key Resolution
+
+  If both `DUNE_API_KEY` and `DUNE_COMPANY_API_KEY` are set, resolve the appropriate key before running any command:
+
+  ` ` `bash
+  READ_KEY="${DUNE_COMPANY_API_KEY:-$DUNE_API_KEY}"
+  WRITE_KEY="${DUNE_API_KEY:-$DUNE_COMPANY_API_KEY}"
+  ` ` `
+
+  | Scenario | READ_KEY | WRITE_KEY |
+  |----------|----------|-----------|
+  | Only `DUNE_API_KEY` set | `DUNE_API_KEY` | `DUNE_API_KEY` |
+  | Only `DUNE_COMPANY_API_KEY` set | `DUNE_COMPANY_API_KEY` | `DUNE_COMPANY_API_KEY` |
+  | Both set | `DUNE_COMPANY_API_KEY` | `DUNE_API_KEY` |
+  | Neither set | stop — ask user to set `DUNE_API_KEY` | stop — ask user to set `DUNE_API_KEY` |
+
+  Use `READ_KEY` for read operations (`query run`, `query run-sql`, `execution results`, `dataset search`, `usage`). Use `WRITE_KEY` for write operations (`query create`, `query update`, `query archive`, `viz create/update/delete`, `dashboard create/update/archive`). Pass via `--api-key $READ_KEY` or `--api-key $WRITE_KEY`.
+  ```
+
+**Step 3** — Write merged result to both paths:
+- `~/.claude/skills/dune/SKILL.md`
+- `$_REPO/dune/SKILL.md` (skip if `REPO=not_found`)
+
+**Step 4** — Commit and push (skip if `REPO=not_found`):
+```bash
+cd "$_REPO" && git add dune/SKILL.md && \
+git commit -m "chore(dune): sync upstream $(echo $_LATEST_CACHED | cut -c1-7) + reapply patches" && \
+git push
+```
+
+**Step 5** — Record ack and report to user:
+```bash
+echo "$_LATEST_CACHED" > ~/.dune/.upstream-ack
+```
+Tell the user: "✅ Dune skill synced to upstream `<first 7 chars of _LATEST_CACHED>`. Patches reapplied and pushed to yandhii/dune-skills."
+
+Then continue with the user's original request.
 
 ## Prerequisites
 
