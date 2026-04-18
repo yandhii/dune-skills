@@ -172,16 +172,32 @@ git commit -m "Add Paragon support to HIP-3 classification"
 # 1. Preview what would be pushed (always check first)
 uv run push.py --dry-run
 
-# 2. Push only files changed since last push
+# 2. Push changed queries to Dune, then auto-commit + git push
 uv run push.py
 
 # 3. Force push all tracked queries (bypasses change detection)
 uv run push.py --all
+
+# 4. Push to Dune only, skip git commit + push
+uv run push.py --no-auto-commit
 ```
+
+### Auto-commit
+
+After a fully successful Dune push, `push.py` automatically runs:
+1. `git add queries/`
+2. `git commit -m "sync: push N quer[y/ies] to Dune"` (skipped if nothing new to stage)
+3. `git push`
+
+Pass `--no-auto-commit` to skip this step.
 
 ### How Change Detection Works
 
-After each **fully successful** push (zero errors), `push.py` records the current git SHA in `.dune_push_ref`. On the next run it does `git diff <ref> -- queries/` to find changed `.sql` files.
+After each **fully successful** push (zero errors), `push.py` records the current git SHA in `.dune_push_ref`. On the next run it combines:
+- `git diff <ref> -- queries/` — committed changes since last push
+- `git status --porcelain -- queries/` — staged, unstaged, and untracked changes
+
+This means you can run `push.py` directly on uncommitted edits — no manual `git commit` needed first.
 
 - **First run** (no `.dune_push_ref`): pushes all tracked queries and creates the ref
 - **Subsequent runs**: only pushes files changed since the last push
@@ -201,19 +217,16 @@ After each **fully successful** push (zero errors), `push.py` records the curren
 ## Typical Workflow
 
 ```bash
-# 1. Pull latest from Dune (commit local edits first)
+# 1. Pull latest from Dune
 uv run pull.py
 
 # 2. Edit SQL locally
 $EDITOR queries/hip_3___6280635.sql
 
-# 3. Commit to git
-git add queries/hip_3___6280635.sql && git commit -m "..."
-
-# 4. Preview what will be pushed
+# 3. Preview what will be pushed
 uv run push.py --dry-run
 
-# 5. Push only what changed
+# 4. Push to Dune + auto-commit + git push
 uv run push.py
 ```
 
@@ -241,7 +254,8 @@ The slug is derived from the query name on Dune (lowercased, spaces → undersco
 | `401 Unauthorized` on push | Wrong key or key lacks write access | Ensure `DUNE_API_KEY` belongs to the account that owns the query |
 | `403 Forbidden` on push | Key valid but account doesn't own the query | Use the personal key of the query owner |
 | `429 Too Many Requests` | Dune write API: 15 rpm (Free) / 70 rpm (Plus) | push.py retries automatically: 3 attempts, 60s × attempt backoff. If it still fails, wait ~5 min and re-run. On Free plan with large batches, increase `time.sleep(4)` in push.py further. |
-| `push.py` shows "Nothing changed" | No SQL files changed since last push | Edit a file and commit first, or use `--all` to force |
+| `push.py` shows "Nothing changed" | No SQL files changed since last push | Edit a file, or use `--all` to force |
+| `git push` fails after Dune push | Remote rejected (not up to date) | Run `git pull --rebase` then `uv run push.py --no-auto-commit` |
 | Unexpected files pushed after rebase | `.dune_push_ref` points to wrong commit | `rm .dune_push_ref` then re-run `push.py` |
 | Duplicate `.sql` files after rename | Query renamed on Dune; pull created new slug | Delete the old file manually |
 | Pull overwrites local edits | Pulled without committing first | Always commit before pulling |

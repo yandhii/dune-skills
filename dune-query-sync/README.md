@@ -75,19 +75,16 @@ uv run pull.py
 ## Daily workflow
 
 ```bash
-# Pull latest SQL from Dune (commit local edits first)
+# Pull latest SQL from Dune
 uv run pull.py
 
 # Edit a query
 $EDITOR queries/my_query___6280635.sql
 
-# Commit to git
-git add queries/ && git commit -m "update query"
-
 # Preview what will be pushed
 uv run push.py --dry-run
 
-# Push changed queries to Dune
+# Push to Dune — auto-commits and git pushes on success
 uv run push.py
 ```
 
@@ -96,9 +93,10 @@ uv run push.py
 | What you want | Command |
 |---|---|
 | Pull all tracked queries from Dune | `uv run pull.py` |
-| Push changed queries to Dune | `uv run push.py` |
+| Push changed queries to Dune (+ auto-commit + git push) | `uv run push.py` |
 | Preview what would be pushed | `uv run push.py --dry-run` |
 | Force push everything | `uv run push.py --all` |
+| Push to Dune only, skip git commit | `uv run push.py --no-auto-commit` |
 | Add a new query | Add ID to `queries/queries.yml`, then `uv run pull.py` |
 
 ## How change detection works

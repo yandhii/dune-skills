@@ -56,11 +56,27 @@ def current_git_sha() -> str:
 def changed_sql_files(ref_sha: str | None) -> list[Path]:
     if ref_sha is None:
         return list(QUERIES_DIR.glob("*.sql"))
-    result = subprocess.run(
+
+    found: set[Path] = set()
+
+    # Committed changes since last push ref
+    r = subprocess.run(
         ["git", "diff", "--name-only", ref_sha, "--", str(QUERIES_DIR)],
         capture_output=True, text=True, check=True,
     )
-    return [Path(p) for p in result.stdout.splitlines() if p.endswith(".sql")]
+    found.update(Path(p) for p in r.stdout.splitlines() if p.endswith(".sql"))
+
+    # Uncommitted changes: staged, unstaged, and untracked files in queries/
+    r = subprocess.run(
+        ["git", "status", "--porcelain", "--", str(QUERIES_DIR)],
+        capture_output=True, text=True, check=True,
+    )
+    for line in r.stdout.splitlines():
+        path = line[3:].strip()
+        if path.endswith(".sql"):
+            found.add(Path(path))
+
+    return list(found)
 
 
 def extract_id_from_filename(path: Path) -> int | None:
@@ -89,11 +105,26 @@ def load_tracked_ids() -> set[int]:
     return {int(qid) for qid in (data.get("query_ids") or [])}
 
 
+def git_commit_and_push(pushed: list[tuple[Path, int]]) -> None:
+    subprocess.run(["git", "add", str(QUERIES_DIR)], check=True)
+    staged = subprocess.run(["git", "diff", "--cached", "--quiet"], capture_output=True)
+    if staged.returncode != 0:
+        n = len(pushed)
+        msg = f"sync: push {n} quer{'y' if n == 1 else 'ies'} to Dune"
+        subprocess.run(["git", "commit", "-m", msg], check=True)
+        print(f"Git: committed — {msg}")
+    else:
+        print("Git: nothing new to commit.")
+    subprocess.run(["git", "push"], check=True)
+    print("Git: pushed to remote.")
+
+
 def main() -> None:
     import argparse
     parser = argparse.ArgumentParser(description="Push SQL changes to Dune")
     parser.add_argument("--dry-run", action="store_true", help="Preview only, no writes")
     parser.add_argument("--all", dest="force_all", action="store_true", help="Push all tracked queries")
+    parser.add_argument("--no-auto-commit", action="store_true", help="Skip git commit + push after Dune push")
     args = parser.parse_args()
 
     load_dotenv()
@@ -139,9 +170,11 @@ def main() -> None:
         time.sleep(4)  # Dune write API: 15 rpm on Free plan — need >= 4s between requests
 
     if errors == 0:
+        if not args.no_auto_commit:
+            git_commit_and_push(to_push)
         sha = current_git_sha()
         PUSH_REF_FILE.write_text(sha + "\n")
-        print(f"\nRef advanced to {sha[:8]}")
+        print(f"Ref advanced to {sha[:8]}")
     else:
         print(f"\n{errors} error(s) — ref NOT advanced; all changed files will retry next run.")
 
